@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}Submit Support Request — AutoTriage AI{% endblock %}
+
+{% block content %}
+<div class="portal-container">
+    <div class="portal-hero">
+        <div class="hero-chip">✨ Powered by Google Gemini 2.5 & Supabase</div>
+        <h1 class="hero-title">Instant Support Request Triage</h1>
+        <p class="hero-subtitle">
+            Need assistance? Describe your issue below. Our intelligent agent analyzes priority, identifies technical domain, and routes it directly to the right engineer.
+        </p>
+    </div>
+
+    {% if submitted_ticket %}
+    <div class="submitted-card card">
+        <div class="submitted-header">
+            <div class="status-indicator-ring">
+                <span class="pulsing-dot"></span>
+                <span>Ticket <strong>#{{ submitted_ticket.id }}</strong> Submitted Successfully</span>
+            </div>
+            <span class="badge badge-status-{{ submitted_ticket.status|lower|replace(' ', '-') }}">{{ submitted_ticket.status }}</span>
+        </div>
+
+        <div class="submitted-body">
+            <h3 class="submitted-subject">{{ submitted_ticket.subject }}</h3>
+            
+            <div class="triage-pills">
+                <div class="pill-group">
+                    <span class="pill-label">Category:</span>
+                    <span class="badge badge-category">{{ submitted_ticket.category or 'Pending AI Evaluation' }}</span>
+                </div>
+                <div class="pill-group">
+                    <span class="pill-label">Priority:</span>
+                    <span class="badge badge-priority-{{ (submitted_ticket.priority or 'medium')|lower }}">{{ submitted_ticket.priority or 'Evaluating' }}</span>
+                </div>
+                <div class="pill-group">
+                    <span class="pill-label">Confidence:</span>
+                    <span class="badge badge-confidence">
+                        {% if submitted_ticket.confidence is not none %}
+                            {{ (submitted_ticket.confidence * 100)|round|int }}%
+                        {% else %}
+                            Pending
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+
+            {% if submitted_ticket.ai_summary %}
+            <div class="ai-box">
+                <div class="ai-box-title">🤖 AI Executive Summary</div>
+                <p class="ai-box-content">{{ submitted_ticket.ai_summary }}</p>
+                {% if submitted_ticket.ai_reason %}
+                <div class="ai-box-reason"><strong>Reasoning:</strong> {{ submitted_ticket.ai_reason }}</div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <div class="submitted-meta">
+                <span>Submitted at: <span class="utc-time">{{ submitted_ticket.created_at }}</span></span>
+                {% if current_user %}
+                <a href="{{ url_for('tickets.ticket_detail', ticket_id=submitted_ticket.id) }}" class="btn btn-sm btn-outline">Manage in Queue →</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="portal-grid">
+        <!-- Ticket Submission Form -->
+        <div class="form-card card">
+            <div class="card-header">
+                <h2>Create New Support Ticket</h2>
+                <p class="text-muted">Fill out the details below. Our triage model responds immediately.</p>
+            </div>
+
+            <form action="{{ url_for('tickets.submit_ticket') }}" method="POST" id="ticketForm" class="styled-form">
+                <div class="form-row two-cols">
+                    <div class="form-group">
+                        <label for="customer_name">Your Name <span class="text-muted">(Optional)</span></label>
+                        <input type="text" id="customer_name" name="customer_name" value="{{ customer_name or '' }}" placeholder="Alex Mercer" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="customer_email">Contact Email <span class="text-muted">(Optional)</span></label>
+                        <input type="email" id="customer_email" name="customer_email" value="{{ customer_email or '' }}" placeholder="alex@company.com" class="form-input">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="subject">Ticket Subject <span class="required">*</span></label>
+                    <input type="text" id="subject" name="subject" value="{{ subject or '' }}" placeholder="e.g., Cannot access billing portal or export monthly invoices" required maxlength="200" class="form-input">
+                    <span class="field-hint">Max 200 characters</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="message">Detailed Description <span class="required">*</span></label>
+                    <textarea id="message" name="message" rows="6" placeholder="Provide full context, any error messages seen, and what services are affected..." required minlength="10" maxlength="5000" class="form-textarea">{{ message or '' }}</textarea>
+                    <div class="textarea-footer">
+                        <span class="field-hint">Minimum 10 characters</span>
+                        <span id="charCount" class="char-counter">0 / 5000</span>
+                    </div>
+                </div>
+
+                <div class="quick-examples">
+                    <span class="quick-title">Quick presets:</span>
+                    <button type="button" class="preset-btn" onclick="fillExample('outage')">🚨 Production Outage</button>
+                    <button type="button" class="preset-btn" onclick="fillExample('refund')">💳 Invoice Discrepancy</button>
+                    <button type="button" class="preset-btn" onclick="fillExample('password')">🔐 Password Reset Loop</button>
+                    <button type="button" class="preset-btn" onclick="fillExample('feature')">💡 Dark Mode Request</button>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" id="submitBtn" class="btn btn-primary btn-lg btn-block">
+                        <span class="btn-text">Submit & AI Triage Ticket</span>
+                        <span class="btn-spinner hidden"></span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Information & Supported Categories Side Panel -->
+        <div class="info-sidebar">
+            <div class="info-card card">
+                <h3>🏷️ Supported Classifications</h3>
+                <p class="text-muted text-sm">Tickets are triaged into strictly monitored categories:</p>
+                <ul class="category-list">
+                    <li>
+                        <div class="cat-pill">Technical Issue</div>
+                        <p>Bugs, outages, 500 errors, or system malfunctions.</p>
+                    </li>
+                    <li>
+                        <div class="cat-pill">Billing & Payments</div>
+                        <p>Invoices, subscription upgrades, failed payments, charges.</p>
+                    </li>
+                    <li>
+                        <div class="cat-pill">Account & Access</div>
+                        <p>MFA resets, permission problems, login roadblocks.</p>
+                    </li>
+                    <li>
+                        <div class="cat-pill">Feature Request</div>
+                        <p>Product suggestions, integrations, and enhancements.</p>
+                    </li>
+                    <li>
+                        <div class="cat-pill">General Inquiry</div>
+                        <p>Documentation questions, licensing details, general help.</p>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="info-card card highlight-card">
+                <h3>🎯 Intelligent Priority Guardrails</h3>
+                <p class="text-sm">Priority is strictly determined by <strong>operational impact</strong>, preventing emotional inflation:</p>
+                <div class="priority-guide">
+                    <span class="badge badge-priority-urgent">Urgent</span> Service outage / security risk
+                    <br>
+                    <span class="badge badge-priority-high">High</span> Critical workflows blocked
+                    <br>
+                    <span class="badge badge-priority-medium">Medium</span> Standard impact / workaround exists
+                    <br>
+                    <span class="badge badge-priority-low">Low</span> Questions or cosmetic requests
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

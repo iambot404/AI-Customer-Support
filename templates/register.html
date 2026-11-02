@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Register Support Agent — AutoTriage AI{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-card card">
+        <div class="auth-header">
+            <span class="auth-icon">🧑‍💻</span>
+            <h2>Create Support Agent Account</h2>
+            <p class="text-muted text-sm">Join the triage operations team to manage and review AI customer tickets.</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('auth.register') }}" class="styled-form auth-form">
+            <div class="form-group">
+                <label for="username">Agent Username</label>
+                <input type="text" id="username" name="username" value="{{ username or '' }}" required minlength="3" placeholder="johndoe" class="form-input" autofocus>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Work Email</label>
+                <input type="email" id="email" name="email" value="{{ email or '' }}" required placeholder="john@company.com" class="form-input">
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required minlength="6" placeholder="At least 6 characters" class="form-input">
+            </div>
+
+            <div class="form-group">
+                <label for="confirm_password">Confirm Password</label>
+                <input type="password" id="confirm_password" name="confirm_password" required minlength="6" placeholder="Repeat your password" class="form-input">
+            </div>
+
+            <div class="form-actions-stacked">
+                <button type="submit" class="btn btn-primary btn-block btn-lg">Complete Registration</button>
+            </div>
+        </form>
+
+        <div class="auth-footer">
+            <p class="text-sm text-muted">
+                Already registered? <a href="{{ url_for('auth.login') }}">Sign In</a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}Ticket #{{ ticket.id }} — AutoTriage AI{% endblock %}
+
+{% block content %}
+<div class="detail-container">
+    <div class="detail-breadcrumbs">
+        <a href="{{ url_for('tickets.ticket_list') }}" class="back-link">← Back to Ticket Queue</a>
+    </div>
+
+    <div class="detail-header">
+        <div class="detail-title-group">
+            <div class="title-meta">
+                <span class="ticket-tag">Ticket #{{ ticket.id }}</span>
+                <span class="badge badge-status-{{ ticket.status|lower|replace(' ', '-') }}">{{ ticket.status }}</span>
+                <span class="badge badge-priority-{{ (ticket.priority or 'low')|lower }}">{{ ticket.priority or 'Unprioritized' }}</span>
+                <span class="badge badge-classification-{{ ticket.classification_status|lower }}">
+                    Triage: {{ ticket.classification_status }}
+                </span>
+            </div>
+            <h1 class="ticket-subject">{{ ticket.subject }}</h1>
+        </div>
+
+        <div class="detail-actions">
+            <form action="{{ url_for('tickets.reclassify', ticket_id=ticket.id) }}" method="POST" class="inline-form">
+                <button type="submit" class="btn btn-outline" id="reclassifyBtn">
+                    🔄 Reclassify with Gemini
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="detail-grid">
+        <!-- Left: Customer Context & AI Triage Analysis -->
+        <div class="detail-main">
+            <!-- Customer original submission card -->
+            <div class="card content-card">
+                <div class="card-header flex-between">
+                    <h3>Customer Message</h3>
+                    <div class="text-xs text-muted">
+                        Submitted: <span class="utc-time">{{ ticket.created_at }}</span>
+                    </div>
+                </div>
+
+                <div class="customer-info-bar">
+                    <div class="info-pill">
+                        <strong>Sender:</strong> {{ ticket.customer_name or 'Anonymous Customer' }}
+                    </div>
+                    {% if ticket.customer_email %}
+                    <div class="info-pill">
+                        <strong>Email:</strong> <a href="mailto:{{ ticket.customer_email }}">{{ ticket.customer_email }}</a>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="message-body">
+                    <pre class="message-text">{{ ticket.message }}</pre>
+                </div>
+            </div>
+
+            <!-- AI Intelligence Analysis card -->
+            <div class="card ai-analysis-card">
+                <div class="card-header flex-between">
+                    <div class="ai-badge-title">
+                        <span class="sparkle-icon">✨</span>
+                        <h3>Gemini AI Triage Assessment</h3>
+                    </div>
+                    {% if ticket.confidence is not none %}
+                    <div class="confidence-meter">
+                        <span class="confidence-label">Confidence:</span>
+                        <div class="meter-bar">
+                            <div class="meter-fill" style="width: {{ (ticket.confidence * 100)|round|int }}%;"></div>
+                        </div>
+                        <span class="confidence-value">{{ (ticket.confidence * 100)|round|int }}%</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="ai-analysis-body">
+                    <div class="ai-metrics-row">
+                        <div class="ai-metric-item">
+                            <span class="ai-metric-label">Model Category</span>
+                            <span class="ai-metric-value badge badge-category">
+                                {{ ticket.ai_category or ticket.category or 'Pending' }}
+                            </span>
+                        </div>
+                        <div class="ai-metric-item">
+                            <span class="ai-metric-label">Assessed Priority</span>
+                            <span class="ai-metric-value badge badge-priority-{{ (ticket.ai_priority or ticket.priority or 'low')|lower }}">
+                                {{ ticket.ai_priority or ticket.priority or 'Pending' }}
+                            </span>
+                        </div>
+                        <div class="ai-metric-item">
+                            <span class="ai-metric-label">Classification State</span>
+                            <span class="ai-metric-value badge badge-classification-{{ ticket.classification_status|lower }}">
+                                {{ ticket.classification_status }}
+                            </span>
+                        </div>
+                    </div>
+
+                    {% if ticket.ai_summary %}
+                    <div class="ai-section">
+                        <h4>Executive Summary</h4>
+                        <p class="ai-text">{{ ticket.ai_summary }}</p>
+                    </div>
+                    {% endif %}
+
+                    {% if ticket.ai_reason %}
+                    <div class="ai-section">
+                        <h4>Diagnostic Reasoning & Evidence</h4>
+                        <p class="ai-text">{{ ticket.ai_reason }}</p>
+                    </div>
+                    {% endif %}
+
+                    {% if ticket.classification_status == 'Failed' %}
+                    <div class="alert-box alert-danger">
+                        <strong>Classification Warning:</strong> Gemini classification did not complete successfully. Check your API key or model quota, or click "Reclassify with Gemini" above.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Human Support Agent Override & Status Management -->
+        <div class="detail-sidebar">
+            <div class="card override-card">
+                <div class="card-header">
+                    <h3>Human Agent Override</h3>
+                    <p class="text-xs text-muted">Update status or override AI suggestions based on your expertise.</p>
+                </div>
+
+                <form action="{{ url_for('tickets.update_ticket_data', ticket_id=ticket.id) }}" method="POST" class="override-form">
+                    <!-- Status -->
+                    <div class="form-group">
+                        <label for="status">Ticket Status</label>
+                        <select id="status" name="status" class="form-select">
+                            {% for st in statuses %}
+                                <option value="{{ st }}" {% if ticket.status == st %}selected{% endif %}>{{ st }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Category Override -->
+                    <div class="form-group">
+                        <label for="category">Assigned Category</label>
+                        <select id="category" name="category" class="form-select">
+                            {% for cat in categories %}
+                                <option value="{{ cat }}" {% if ticket.category == cat %}selected{% endif %}>{{ cat }}</option>
+                            {% endfor %}
+                        </select>
+                        {% if ticket.ai_category and ticket.category != ticket.ai_category %}
+                            <span class="override-hint text-xs">Original AI Category: <strong>{{ ticket.ai_category }}</strong></span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Priority Override -->
+                    <div class="form-group">
+                        <label for="priority">Assigned Priority</label>
+                        <select id="priority" name="priority" class="form-select">
+                            {% for prio in priorities %}
+                                <option value="{{ prio }}" {% if ticket.priority == prio %}selected{% endif %}>{{ prio }}</option>
+                            {% endfor %}
+                        </select>
+                        {% if ticket.ai_priority and ticket.priority != ticket.ai_priority %}
+                            <span class="override-hint text-xs">Original AI Priority: <strong>{{ ticket.ai_priority }}</strong></span>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-actions-stacked">
+                        <button type="submit" class="btn btn-primary btn-block">Save Ticket Changes</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Audit Timestamps -->
+            <div class="card meta-card">
+                <h4>Ticket Audit Log</h4>
+                <div class="audit-row">
+                    <span class="audit-label">Ticket ID:</span>
+                    <span class="audit-value">#{{ ticket.id }}</span>
+                </div>
+                <div class="audit-row">
+                    <span class="audit-label">Created:</span>
+                    <span class="audit-value text-xs">{{ ticket.created_at }}</span>
+                </div>
+                <div class="audit-row">
+                    <span class="audit-label">Last Updated:</span>
+                    <span class="audit-value text-xs">{{ ticket.updated_at }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

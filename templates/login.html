@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Agent Sign In — AutoTriage AI{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-card card">
+        <div class="auth-header">
+            <span class="auth-icon">🔐</span>
+            <h2>Support Agent Sign In</h2>
+            <p class="text-muted text-sm">Sign in to access the classification dashboard, triage queue, and management controls.</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('auth.login') }}" class="styled-form auth-form">
+            <input type="hidden" name="next" value="{{ next }}">
+
+            <div class="form-group">
+                <label for="identifier">Username or Email</label>
+                <input type="text" id="identifier" name="identifier" value="{{ identifier or '' }}" required placeholder="agent@company.com" class="form-input" autofocus>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required placeholder="••••••••" class="form-input">
+            </div>
+
+            <div class="form-actions-stacked">
+                <button type="submit" class="btn btn-primary btn-block btn-lg">Sign In to Dashboard</button>
+            </div>
+        </form>
+
+        <div class="auth-footer">
+            <p class="text-sm text-muted">
+                Need an agent account? <a href="{{ url_for('auth.register') }}">Create Agent Account</a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

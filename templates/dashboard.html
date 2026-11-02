@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block title %}Operations Dashboard — AutoTriage AI{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <div>
+            <h1 class="page-title">Operations & Triage Dashboard</h1>
+            <p class="text-muted">Real-time metrics derived from live database records.</p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('tickets.ticket_list') }}" class="btn btn-outline">View All Tickets</a>
+            <a href="{{ url_for('tickets.index') }}" class="btn btn-primary">+ New Ticket</a>
+        </div>
+    </div>
+
+    <!-- Stat Metric Cards -->
+    <div class="stats-grid">
+        <div class="stat-card card">
+            <div class="stat-icon icon-total">📁</div>
+            <div class="stat-data">
+                <span class="stat-value">{{ metrics.total_tickets }}</span>
+                <span class="stat-label">Total Tickets</span>
+            </div>
+        </div>
+
+        <div class="stat-card card">
+            <div class="stat-icon icon-urgent">🚨</div>
+            <div class="stat-data">
+                <span class="stat-value text-urgent">{{ metrics.urgent_tickets }}</span>
+                <span class="stat-label">Urgent Issues</span>
+            </div>
+        </div>
+
+        <div class="stat-card card">
+            <div class="stat-icon icon-pending">⏳</div>
+            <div class="stat-data">
+                <span class="stat-value text-warning">{{ metrics.pending_classification }}</span>
+                <span class="stat-label">Pending AI Triage</span>
+            </div>
+        </div>
+
+        <div class="stat-card card">
+            <div class="stat-icon icon-resolved">✅</div>
+            <div class="stat-data">
+                <span class="stat-value text-success">{{ metrics.resolved_tickets }}</span>
+                <span class="stat-label">Resolved Tickets</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Distributions and Breakdowns -->
+    <div class="distribution-grid">
+        <!-- By Category -->
+        <div class="card breakdown-card">
+            <div class="card-header">
+                <h3>Tickets by Category</h3>
+                <span class="text-muted text-sm">{{ metrics.total_tickets }} total recorded</span>
+            </div>
+            <div class="breakdown-body">
+                {% for cat, count in metrics.by_category.items() %}
+                    {% set pct = (count / metrics.total_tickets * 100)|round(1) if metrics.total_tickets > 0 else 0 %}
+                    <div class="bar-row">
+                        <div class="bar-info">
+                            <span class="bar-label">{{ cat }}</span>
+                            <span class="bar-count"><strong>{{ count }}</strong> ({{ pct }}%)</span>
+                        </div>
+                        <div class="progress-track">
+                            <div class="progress-fill fill-primary" style="width: {{ pct }}%;"></div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- By Priority -->
+        <div class="card breakdown-card">
+            <div class="card-header">
+                <h3>Priority Distribution</h3>
+                <span class="text-muted text-sm">Severity tiers</span>
+            </div>
+            <div class="breakdown-body">
+                {% for prio, count in metrics.by_priority.items() %}
+                    {% set pct = (count / metrics.total_tickets * 100)|round(1) if metrics.total_tickets > 0 else 0 %}
+                    <div class="bar-row">
+                        <div class="bar-info">
+                            <span class="badge badge-priority-{{ prio|lower }}">{{ prio }}</span>
+                            <span class="bar-count"><strong>{{ count }}</strong> ({{ pct }}%)</span>
+                        </div>
+                        <div class="progress-track">
+                            <div class="progress-fill fill-{{ prio|lower }}" style="width: {{ pct }}%;"></div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- By Status -->
+        <div class="card breakdown-card">
+            <div class="card-header">
+                <h3>Status Breakdown</h3>
+                <span class="text-muted text-sm">Lifecycle state</span>
+            </div>
+            <div class="breakdown-body">
+                {% for st, count in metrics.by_status.items() %}
+                    {% set pct = (count / metrics.total_tickets * 100)|round(1) if metrics.total_tickets > 0 else 0 %}
+                    <div class="bar-row">
+                        <div class="bar-info">
+                            <span class="badge badge-status-{{ st|lower|replace(' ', '-') }}">{{ st }}</span>
+                            <span class="bar-count"><strong>{{ count }}</strong> ({{ pct }}%)</span>
+                        </div>
+                        <div class="progress-track">
+                            <div class="progress-fill fill-status-{{ st|lower|replace(' ', '-') }}" style="width: {{ pct }}%;"></div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Tickets Table -->
+    <div class="card recent-tickets-card">
+        <div class="card-header flex-between">
+            <div>
+                <h3>Recent Tickets</h3>
+                <p class="text-muted text-sm">Latest submissions and their automated classification status</p>
+            </div>
+            <a href="{{ url_for('tickets.ticket_list') }}" class="btn btn-sm btn-ghost">Full Queue →</a>
+        </div>
+
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Subject</th>
+                        <th>Customer</th>
+                        <th>Category</th>
+                        <th>Priority</th>
+                        <th>Status</th>
+                        <th>Triage</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if metrics.recent_tickets %}
+                        {% for t in metrics.recent_tickets %}
+                        <tr>
+                            <td><span class="ticket-id">#{{ t.id }}</span></td>
+                            <td class="cell-subject">
+                                <a href="{{ url_for('tickets.ticket_detail', ticket_id=t.id) }}" class="subject-link">
+                                    {{ t.subject }}
+                                </a>
+                            </td>
+                            <td>
+                                <div class="cell-customer">
+                                    <span>{{ t.customer_name or 'Anonymous' }}</span>
+                                    {% if t.customer_email %}
+                                    <small class="text-muted">{{ t.customer_email }}</small>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                {% if t.category %}
+                                <span class="badge badge-category">{{ t.category }}</span>
+                                {% else %}
+                                <span class="badge badge-muted">Unassigned</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if t.priority %}
+                                <span class="badge badge-priority-{{ t.priority|lower }}">{{ t.priority }}</span>
+                                {% else %}
+                                <span class="badge badge-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge badge-status-{{ t.status|lower|replace(' ', '-') }}">{{ t.status }}</span>
+                            </td>
+                            <td>
+                                <span class="badge badge-classification-{{ t.classification_status|lower }}">
+                                    {{ t.classification_status }}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('tickets.ticket_detail', ticket_id=t.id) }}" class="btn btn-xs btn-outline">Review</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="8" class="empty-cell">
+                                <div class="empty-state">
+                                    <span class="empty-icon">📥</span>
+                                    <p>No tickets logged yet. Submit a test ticket to watch Gemini triage in action.</p>
+                                    <a href="{{ url_for('tickets.index') }}" class="btn btn-sm btn-primary">Create First Ticket</a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
