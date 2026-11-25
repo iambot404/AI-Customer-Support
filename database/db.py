@@ -20,6 +20,8 @@ try:
     from supabase import create_client, Client
     SUPABASE_SDK_AVAILABLE = True
 except ImportError:
+    create_client = None
+    Client = None
     SUPABASE_SDK_AVAILABLE = False
 
 _supabase_client = None
@@ -60,7 +62,7 @@ def is_supabase_enabled():
     return bool(SUPABASE_SDK_AVAILABLE and Config.SUPABASE_URL and Config.SUPABASE_KEY)
 
 
-def get_supabase_client() -> Client:
+def get_supabase_client():
     """Provides a singleton Supabase Client."""
     global _supabase_client
     if _supabase_client is not None:

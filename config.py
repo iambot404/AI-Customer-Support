@@ -11,12 +11,16 @@ class Config:
     
     # Database configuration: defaults to local SQLite file
     # For Supabase / Postgres: set DATABASE_URL=postgresql://postgres:...
+    is_vercel = bool(os.environ.get("VERCEL"))
     DATABASE_URL = os.environ.get("DATABASE_URL", "")
-    SQLITE_PATH = os.environ.get("SQLITE_PATH", str(BASE_DIR / "support_tickets.db"))
+    if is_vercel:
+        SQLITE_PATH = "/tmp/support_tickets.db"
+    else:
+        SQLITE_PATH = os.environ.get("SQLITE_PATH", str(BASE_DIR / "support_tickets.db"))
 
-    # Supabase credentials
+    # Supabase credentials (fallback to project default publishable key)
     SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://mcgbcmaybudlfowynvgi.supabase.co")
-    SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
+    SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "sb_publishable_t7lNIXg5PhITgYbxNXtNQg_0QA_gCh_")
 
     # Gemini configuration
     # Check env first, then fallback to keys.txt if needed
