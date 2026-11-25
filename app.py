@@ -43,7 +43,22 @@ def create_app(config_class=Config):
 
 app = create_app()
 
+import socket
+
+def is_port_in_use(port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        return s.connect_ex(("127.0.0.1", port)) == 0
+
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
+    configured_port = int(os.environ.get("PORT", 5000))
+    port = configured_port
+    if is_port_in_use(port):
+        for candidate in [5001, 5002, 5050, 8080]:
+            if not is_port_in_use(candidate):
+                print(f"[!] Notice: Port {port} is occupied by another running application.")
+                print(f"[!] Auto-assigning available port: http://127.0.0.1:{candidate}")
+                port = candidate
+                break
+
     print(f">> AI Ticket Classifier running on http://127.0.0.1:{port}")
     app.run(host="0.0.0.0", port=port, debug=True)

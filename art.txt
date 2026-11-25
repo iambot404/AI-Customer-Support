@@ -11,12 +11,19 @@ Use Glassmorphism + subtle AI-inspired elements:
 ================================================================================
 AUTOTRIAGE AI — FUNCTIONALITY & LIVE API FACT-CHECK REPORT
 ================================================================================
-Verification Date: 2026-11-02
+Verification Date: 2026-11-25
+Database Backend: Supabase Cloud PostgreSQL (https://mcgbcmaybudlfowynvgi.supabase.co)
 Key Status: Active Google Gemini API Key configured in .env and keys.txt
 Primary Working Model: gemini-flash-lite-latest (verified 200 OK)
 Fallback Models: gemini-3.1-flash-lite, gemini-3.5-flash-lite, gemini-3-flash-preview, gemini-3.8-flash
 
-1. DESIGN ALIGNMENT FACT-CHECK
+1. SUPABASE INTEGRATION & RLS RESOLUTION
+- [✓] Row Level Security (RLS) policies applied via migration to public.tickets and public.users.
+- [✓] Direct Supabase REST SDK integration in database/db.py active when SUPABASE_URL and SUPABASE_KEY are provided.
+- [✓] Full CRUD operations (insert, select, update, filter, search, count) verified against live Supabase cloud instance.
+- [✓] Isolated test execution preserves local SQLite test fixtures when TESTING=True.
+
+2. DESIGN ALIGNMENT FACT-CHECK
 - [✓] Dark navy / deep obsidian background with subtle violet/blue radial gradients.
 - [✓] Frosted glassmorphism cards (backdrop-filter: blur(12px), rgba borders).
 - [✓] Soft indigo and cyan glow gradients.
@@ -25,18 +32,18 @@ Fallback Models: gemini-3.1-flash-lite, gemini-3.5-flash-lite, gemini-3-flash-pr
 - [✓] Minimalist micro-animations (fade-ins, pulsing status indicators).
 - [✓] Real SQL-driven distribution progress charts across category, priority, and status.
 
-2. LIVE GEMINI TRIAGE FACT-CHECK
-Test Execution with live API:
-- Input Ticket: "Critical vulnerability: Unauthorized session token leakage in API response"
+3. LIVE PIPELINE FACT-CHECK (WEB + SUPABASE + GEMINI)
+Test Execution:
+- Web Route: POST /tickets
+- Input Ticket: "Database connection pool exhausted in production ap-south-1"
+- Stored in Supabase: Ticket #6
 - Classification Result:
   * Category: Technical Issue (Matched 100%)
-  * Priority: Urgent (Impact-based, security concern)
+  * Priority: Urgent (Impact-based, production service impact)
   * Classification Status: Completed
-  * Confidence: 1.0 (100%)
-  * AI Summary: "The API endpoint returns session tokens of other accounts, posing a severe security risk."
-  * AI Reason: "The ticket reports a critical security vulnerability where unauthorized session tokens are exposed in API responses, requiring immediate patching."
+  * AI Summary: "The primary backend service is experiencing connection pool timeout errors in production during peak hours."
 
-3. AUTOMATED TEST SUITE FACT-CHECK
+4. AUTOMATED TEST SUITE FACT-CHECK
 - 23 of 23 pytest tests passed.
 - All auth flows (register, login, logout, password hashing) verified.
 - Error fallback (graceful 'Pending' status) verified.

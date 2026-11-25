@@ -72,8 +72,8 @@ def submit_ticket():
             customer_email=customer_email
         )
     except Exception as db_err:
-        logger.error(f"Failed to persist ticket: {db_err}")
-        flash("Could not save ticket to database. Please try again.", "danger")
+        logger.error(f"Failed to persist ticket: {db_err}", exc_info=True)
+        flash(f"Could not save ticket to database: {str(db_err)}", "danger")
         return redirect(url_for("tickets.index"))
 
     # 2. Call Gemini for classification
